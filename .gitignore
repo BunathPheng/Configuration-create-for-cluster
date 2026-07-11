@@ -1,0 +1,21 @@
+# Kubespray upstream clone (recreate via KUBESPRAY_VERSION, do not commit)
+kubespray/
+
+# Terraform local state and providers (state may contain sensitive data)
+terraform/.terraform/
+terraform/terraform.tfstate*
+terraform/*.tfvars
+
+# Generated cluster credentials — NEVER commit
+**/artifacts/
+*.conf
+credentials/
+
+# Python
+venv/
+__pycache__/
+
+# SSH keys — NEVER commit
+*.pem
+id_*
+k8s-deploy*
