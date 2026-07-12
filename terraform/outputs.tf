@@ -17,3 +17,13 @@ output "internal_ips" {
 output "next_step" {
   value = "Inventory written to ../kubespray/inventory/mycluster/inventory.ini - run: ansible -i inventory/mycluster/inventory.ini all -m ping"
 }
+
+output "ingress_ip" {
+  description = "Static GCP Load Balancer IP — point DNS here, Traefik entry point"
+  value       = google_compute_address.ingress.address
+}
+
+output "traefik_entry_url" {
+  description = "HTTP entry via Traefik behind GCP LB"
+  value       = "http://${google_compute_address.ingress.address}"
+}

@@ -102,8 +102,8 @@ resource "google_compute_instance" "node" {
   boot_disk {
     initialize_params {
       image = data.google_compute_image.ubuntu.self_link
-      size  = 100
-      type  = "pd-ssd" # SSD required: etcd is fsync-latency sensitive
+      size  = var.disk_size_gb
+      type  = var.disk_type # SSD strongly recommended: etcd is fsync-latency sensitive
     }
   }
 

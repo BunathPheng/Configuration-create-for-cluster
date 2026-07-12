@@ -5,6 +5,7 @@ kubespray/
 terraform/.terraform/
 terraform/terraform.tfstate*
 terraform/*.tfvars
+!terraform/lab.tfvars
 
 # Generated cluster credentials — NEVER commit
 **/artifacts/

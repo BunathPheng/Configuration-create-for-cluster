@@ -44,6 +44,18 @@ variable "worker_machine_type" {
   default = "e2-custom-8-16384" # 8 vCPU / 16 GB
 }
 
+variable "disk_size_gb" {
+  description = "Boot disk size per node"
+  type        = number
+  default     = 100
+}
+
+variable "disk_type" {
+  description = "Boot disk type (pd-ssd for production; pd-balanced for lab)"
+  type        = string
+  default     = "pd-ssd"
+}
+
 variable "control_plane_nodes" {
   description = "Control-plane nodes: name => last octet of internal IP"
   type        = map(number)
