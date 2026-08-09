@@ -1,0 +1,46 @@
+# Applied via kubectl patch / setup script — documents the intended argocd-cm keys.
+# Live apply uses scripts/setup-openldap-dex-argocd.sh
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  url: https://argocd.smartops.space
+  admin.enabled: "true"
+  # Argo CD embeds DEX. This tells DEX how to talk LDAP to OpenLDAP.
+  # Mental model: Argo CD --OIDC--> DEX --LDAP--> OpenLDAP
+  dex.config: |
+    logger:
+      level: info
+      format: json
+    connectors:
+      - type: ldap
+        id: openldap
+        name: OpenLDAP
+        config:
+          # In-cluster OpenLDAP (lab uses plain LDAP; production should use LDAPS :636)
+          host: openldap.ldap.svc.cluster.local:389
+          insecureNoSSL: true
+          insecureSkipVerify: true
+          # Service account used by DEX to search directory
+          bindDN: cn=admin,dc=smartops,dc=local
+          bindPW: $dex.ldap.bindPW
+          usernamePrompt: OpenLDAP Username
+          userSearch:
+            baseDN: ou=people,dc=smartops,dc=local
+            filter: "(objectClass=inetOrgPerson)"
+            username: uid
+            idAttr: uid
+            emailAttr: mail
+            nameAttr: cn
+          groupSearch:
+            baseDN: ou=groups,dc=smartops,dc=local
+            filter: "(objectClass=groupOfNames)"
+            userMatchers:
+              - userAttr: DN
+                groupAttr: member
+            nameAttr: cn

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-rbac-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  # Use groups claim from DEX/OIDC tokens (mapped from OpenLDAP groups)
+  scopes: '[groups]'
+  # No anonymous default role — must authenticate and match a group mapping
+  policy.default: ''
+  policy.matchMode: glob
+  # g, <ldap-group-cn>, <argocd-role>
+  # Authentication succeeds for charlie, but with no group mapping he gets no access.
+  policy.csv: |
+    g, argocd-admins, role:admin
+    g, argocd-readonly, role:readonly

@@ -1,0 +1,116 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openldap-seed
+  namespace: ldap
+  labels:
+    app.kubernetes.io/name: openldap
+data:
+  seed.ldif: |
+    dn: ou=people,dc=smartops,dc=local
+    objectClass: organizationalUnit
+    ou: people
+
+    dn: ou=groups,dc=smartops,dc=local
+    objectClass: organizationalUnit
+    ou: groups
+
+    dn: uid=alice,ou=people,dc=smartops,dc=local
+    objectClass: inetOrgPerson
+    objectClass: organizationalPerson
+    objectClass: person
+    objectClass: top
+    uid: alice
+    sn: Admin
+    cn: Alice Admin
+    mail: alice@smartops.local
+    userPassword: AlicePass123!
+
+    dn: uid=bob,ou=people,dc=smartops,dc=local
+    objectClass: inetOrgPerson
+    objectClass: organizationalPerson
+    objectClass: person
+    objectClass: top
+    uid: bob
+    sn: Reader
+    cn: Bob Reader
+    mail: bob@smartops.local
+    userPassword: BobPass123!
+
+    dn: uid=charlie,ou=people,dc=smartops,dc=local
+    objectClass: inetOrgPerson
+    objectClass: organizationalPerson
+    objectClass: person
+    objectClass: top
+    uid: charlie
+    sn: Guest
+    cn: Charlie Guest
+    mail: charlie@smartops.local
+    userPassword: CharliePass123!
+
+    dn: cn=argocd-admins,ou=groups,dc=smartops,dc=local
+    objectClass: groupOfNames
+    objectClass: top
+    cn: argocd-admins
+    description: Argo CD administrators
+    member: uid=alice,ou=people,dc=smartops,dc=local
+
+    dn: cn=argocd-readonly,ou=groups,dc=smartops,dc=local
+    objectClass: groupOfNames
+    objectClass: top
+    cn: argocd-readonly
+    description: Argo CD read-only users
+    member: uid=bob,ou=people,dc=smartops,dc=local
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: openldap-seed
+  namespace: ldap
+  labels:
+    app.kubernetes.io/name: openldap
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: seed
+          image: osixia/openldap:1.5.0
+          command:
+            - /bin/bash
+            - -ec
+            - |
+              set -e
+              echo "Waiting for OpenLDAP..."
+              for i in $(seq 1 60); do
+                if ldapsearch -x -H ldap://openldap.ldap.svc.cluster.local \
+                  -D "cn=admin,dc=smartops,dc=local" -w "${LDAP_ADMIN_PASSWORD}" \
+                  -b "dc=smartops,dc=local" -s base >/dev/null 2>&1; then
+                  echo "OpenLDAP is ready"
+                  break
+                fi
+                sleep 3
+              done
+              # Idempotent seed: ignore already-exists (code 68)
+              ldapadd -x -H ldap://openldap.ldap.svc.cluster.local \
+                -D "cn=admin,dc=smartops,dc=local" -w "${LDAP_ADMIN_PASSWORD}" \
+                -f /seed/seed.ldif || true
+              echo "Seed complete. Directory dump:"
+              ldapsearch -x -H ldap://openldap.ldap.svc.cluster.local \
+                -D "cn=admin,dc=smartops,dc=local" -w "${LDAP_ADMIN_PASSWORD}" \
+                -b "dc=smartops,dc=local" dn
+          env:
+            - name: LDAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openldap-admin
+                  key: LDAP_ADMIN_PASSWORD
+          volumeMounts:
+            - name: seed
+              mountPath: /seed
+      volumes:
+        - name: seed
+          configMap:
+            name: openldap-seed

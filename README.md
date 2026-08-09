@@ -18,10 +18,10 @@ If the cluster is ever lost, everything needed to recreate it is in this repo.
 │   ├── variables.tf
 │   └── outputs.tf
 ├── platform/
-│   └── traefik/                 # Traefik ingress + ArgoCD IngressRoute
-│       ├── values.yaml
-│       └── argocd-ingressroute.yaml
-├── scripts/                     # setup helpers (ArgoCD, Traefik, kubectl, etc.)
+│   ├── traefik/                 # Traefik ingress + ArgoCD IngressRoute
+│   ├── openldap/                # Lab directory (AD substitute) + seed users/groups
+│   └── argocd/                  # DEX LDAP + RBAC lesson manifests
+├── scripts/                     # setup helpers (ArgoCD, Traefik, OpenLDAP/DEX, etc.)
 └── inventory/mycluster/         # Kubespray inventory + cluster variables
     ├── inventory.ini
     └── group_vars/
@@ -40,6 +40,12 @@ If the cluster is ever lost, everything needed to recreate it is in this repo.
 | **ArgoCD** | https://argocd.smartops.space/ | Helm (`scripts/install-argocd-helm.sh`) |
 | **Traefik** | entry point on GCP LB | Helm (`platform/traefik/values.yaml`) |
 | **GCP Load Balancer** | static IP via `terraform output ingress_ip` | `terraform/loadbalancer.tf` |
+| **OpenLDAP + DEX** | Login via OpenLDAP on Argo CD | `scripts/setup-openldap-dex-argocd.sh` |
+
+**Identity lab (no AD):** OpenLDAP stores users/groups → DEX speaks LDAP → Argo CD uses OIDC + RBAC.  
+Lesson: `platform/argocd/OPENLDAP-DEX-LESSON.md` · Sequence flow: `platform/argocd/PRODUCTION-SEQUENCE-FLOW.md`
+
+**Test logins:** `alice/AlicePass123!` (admin), `bob/BobPass123!` (readonly), `charlie/CharliePass123!` (no RBAC)
 
 **DNS:** `argocd.smartops.space` → A record → GCP ingress IP (`terraform output ingress_ip`)
 
